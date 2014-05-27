@@ -39,6 +39,8 @@
  */
 @property (readwrite, nonatomic, assign) id <GPUImageMovieDelegate>delegate;
 
+@property (readonly, nonatomic, getter = isPaused) BOOL paused;
+
 @property (readonly, nonatomic) AVAssetReader *assetReader;
 @property (readonly, nonatomic) BOOL audioEncodingIsFinished;
 @property (readonly, nonatomic) BOOL videoEncodingIsFinished;
