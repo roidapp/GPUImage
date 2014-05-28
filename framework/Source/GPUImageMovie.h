@@ -3,6 +3,12 @@
 #import "GPUImageContext.h"
 #import "GPUImageOutput.h"
 
+
+typedef enum : NSUInteger {
+    RunModeSynchronously,
+    RunModeAsynchronously,
+} RunMode;
+
 /** Protocol for getting Movie played callback.
  */
 @protocol GPUImageMovieDelegate <NSObject>
@@ -41,7 +47,13 @@
  */
 @property (readwrite, nonatomic, assign) id <GPUImageMovieDelegate>delegate;
 
+/** 判断是否暂停状态
+ */
 @property (readonly, nonatomic, getter = isPaused) BOOL paused;
+
+/** 运行模式，同步模式，还是异步模式
+ */
+@property (readwrite, nonatomic) RunMode runMode;
 
 @property (readonly, nonatomic) AVAssetReader *assetReader;
 @property (readonly, nonatomic) BOOL audioEncodingIsFinished;
@@ -61,6 +73,8 @@
 - (void)startProcessing;
 - (void)endProcessing;
 - (void)cancelProcessing;
+- (void)pauseProcessing;
+- (void)resumeProcessing;
 - (void)processMovieFrame:(CMSampleBufferRef)movieSampleBuffer; 
 
 @end

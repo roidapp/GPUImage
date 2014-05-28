@@ -11,6 +11,7 @@
     AVPlayerItemVideoOutput *playerItemOutput;
     CADisplayLink *displayLink;
     CMTime previousFrameTime, processingFrameTime;
+    CMTime pausedFrameTime;
     CFAbsoluteTime previousActualFrameTime;
     BOOL keepLooping;
 
@@ -196,14 +197,16 @@
     {
         GPUImageMovie __block *blockSelf = self;
         [_asset loadValuesAsynchronouslyForKeys:[NSArray arrayWithObject:@"tracks"] completionHandler: ^{
-            NSError *error = nil;
-            AVKeyValueStatus tracksStatus = [_asset statusOfValueForKey:@"tracks" error:&error];
-            if (!tracksStatus == AVKeyValueStatusLoaded)
-            {
-                return;
-            }
-            [blockSelf processAsset];
-            blockSelf = nil;
+            runAsynchronouslyOnVideoProcessingQueue(^{
+                NSError *error = nil;
+                AVKeyValueStatus tracksStatus = [_asset statusOfValueForKey:@"tracks" error:&error];
+                if (!tracksStatus == AVKeyValueStatusLoaded)
+                {
+                    return;
+                }
+                [blockSelf processAsset];
+                blockSelf = nil;
+            });
         }];
         return;
     }
@@ -219,15 +222,17 @@
     GPUImageMovie __block *blockSelf = self;
     
     [inputAsset loadValuesAsynchronouslyForKeys:[NSArray arrayWithObject:@"tracks"] completionHandler: ^{
-        NSError *error = nil;
-        AVKeyValueStatus tracksStatus = [inputAsset statusOfValueForKey:@"tracks" error:&error];
-        if (!tracksStatus == AVKeyValueStatusLoaded)
-        {
-            return;
-        }
-        blockSelf.asset = inputAsset;
-        [blockSelf processAsset];
-        blockSelf = nil;
+        runAsynchronouslyOnVideoProcessingQueue(^{
+            NSError *error = nil;
+            AVKeyValueStatus tracksStatus = [inputAsset statusOfValueForKey:@"tracks" error:&error];
+            if (!tracksStatus == AVKeyValueStatusLoaded)
+            {
+                return;
+            }
+            blockSelf.asset = inputAsset;
+            [blockSelf processAsset];
+            blockSelf = nil;
+        });
     }];
 }
 
@@ -739,6 +744,19 @@
         [reader cancelReading];
     }
     [self endProcessing];
+}
+
+- (void)pauseProcessing
+{
+    pausedFrameTime = processingFrameTime;
+    _paused = YES;
+    NSLog(@"paused at time => %g", CMTimeGetSeconds(pausedFrameTime));
+    [self cancelProcessing];
+}
+
+- (void)resumeProcessing
+{
+    _paused = NO;
 }
 
 - (void)convertYUVToRGBOutput;
