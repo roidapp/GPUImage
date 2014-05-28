@@ -186,6 +186,51 @@
     }];
 }
 
+- (void)startProcessingAsync
+{
+    if( self.playerItem ) {
+        [self processPlayerItem];
+        return;
+    }
+    if(self.url == nil)
+    {
+        GPUImageMovie __block *blockSelf = self;
+        [_asset loadValuesAsynchronouslyForKeys:[NSArray arrayWithObject:@"tracks"] completionHandler: ^{
+            NSError *error = nil;
+            AVKeyValueStatus tracksStatus = [_asset statusOfValueForKey:@"tracks" error:&error];
+            if (!tracksStatus == AVKeyValueStatusLoaded)
+            {
+                return;
+            }
+            [blockSelf processAsset];
+            blockSelf = nil;
+        }];
+        return;
+    }
+    
+    if (_shouldRepeat) keepLooping = YES;
+    
+    previousFrameTime = kCMTimeZero;
+    previousActualFrameTime = CFAbsoluteTimeGetCurrent();
+    
+    NSDictionary *inputOptions = [NSDictionary dictionaryWithObject:[NSNumber numberWithBool:YES] forKey:AVURLAssetPreferPreciseDurationAndTimingKey];
+    AVURLAsset *inputAsset = [[AVURLAsset alloc] initWithURL:self.url options:inputOptions];
+    
+    GPUImageMovie __block *blockSelf = self;
+    
+    [inputAsset loadValuesAsynchronouslyForKeys:[NSArray arrayWithObject:@"tracks"] completionHandler: ^{
+        NSError *error = nil;
+        AVKeyValueStatus tracksStatus = [inputAsset statusOfValueForKey:@"tracks" error:&error];
+        if (!tracksStatus == AVKeyValueStatusLoaded)
+        {
+            return;
+        }
+        blockSelf.asset = inputAsset;
+        [blockSelf processAsset];
+        blockSelf = nil;
+    }];
+}
+
 - (AVAssetReader*)createAssetReader
 {
     NSError *error = nil;
