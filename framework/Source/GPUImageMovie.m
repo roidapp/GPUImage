@@ -472,6 +472,11 @@
 
     processingFrameTime = currentSampleTime;
     [self processMovieFrame:movieFrame withSampleTime:currentSampleTime];
+    
+    if ([_delegate respondsToSelector:@selector(progressDidChanged:currentTime:duration:)])
+    {
+        [_delegate progressDidChanged:self.progress currentTime:processingFrameTime duration:self.asset.duration];
+    }
 }
 
 - (float)progress

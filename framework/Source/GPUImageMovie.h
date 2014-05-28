@@ -8,6 +8,8 @@
 @protocol GPUImageMovieDelegate <NSObject>
 
 - (void)didCompletePlayingMovie;
+- (void)progressDidChanged:(float)progress currentTime:(CMTime)currentTime duration:(CMTime)duration;
+
 @end
 
 /** Source object for filtering movies
