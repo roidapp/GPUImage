@@ -69,7 +69,7 @@ typedef enum : NSUInteger {
 - (void)enableSynchronizedEncodingUsingMovieWriter:(GPUImageMovieWriter *)movieWriter;
 - (BOOL)readNextVideoFrameFromOutput:(AVAssetReaderOutput *)readerVideoTrackOutput;
 - (BOOL)readNextAudioSampleFromOutput:(AVAssetReaderOutput *)readerAudioTrackOutput;
-- (void)startProcessingAsync;
+- (void)resetProcessing;
 - (void)startProcessing;
 - (void)endProcessing;
 - (void)cancelProcessing;
