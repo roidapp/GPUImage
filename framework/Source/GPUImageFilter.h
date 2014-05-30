@@ -26,6 +26,12 @@ struct GPUVector3 {
 };
 typedef struct GPUVector3 GPUVector3;
 
+struct GPUVector2 {
+    GLfloat x;
+    GLfloat y;
+};
+typedef struct GPUVector2 GPUVector2;
+
 struct GPUMatrix4x4 {
     GPUVector4 one;
     GPUVector4 two;
@@ -126,7 +132,9 @@ typedef struct GPUMatrix3x3 GPUMatrix3x3;
 - (void)setVec3:(GPUVector3)vectorValue forUniform:(GLint)uniform program:(GLProgram *)shaderProgram;
 - (void)setVec4:(GPUVector4)vectorValue forUniform:(GLint)uniform program:(GLProgram *)shaderProgram;
 - (void)setFloatArray:(GLfloat *)arrayValue length:(GLsizei)arrayLength forUniform:(GLint)uniform program:(GLProgram *)shaderProgram;
+- (void)setVec2Array:(GPUVector2*)array length:(GLsizei)arrayLength forUniform:(GLint)uniform program:(GLProgram *)shaderProgram;
 - (void)setInteger:(GLint)intValue forUniform:(GLint)uniform program:(GLProgram *)shaderProgram;
+
 
 - (void)setAndExecuteUniformStateCallbackAtIndex:(GLint)uniform forProgram:(GLProgram *)shaderProgram toBlock:(dispatch_block_t)uniformStateBlock;
 - (void)setUniformsForProgramAtIndex:(NSUInteger)programIndex;
