@@ -189,10 +189,16 @@
 
 - (void)startProcessing
 {
+    if (_shouldRepeat) keepLooping = YES;
+    
+    previousFrameTime = CMTIME_IS_VALID(pausedFrameTime) ? pausedFrameTime : kCMTimeZero;
+    previousActualFrameTime = CFAbsoluteTimeGetCurrent();
+    
     if( self.playerItem ) {
         [self processPlayerItem];
         return;
     }
+    
     if(self.url == nil)
     {
         [_asset loadValuesAsynchronouslyForKeys:[NSArray arrayWithObject:@"tracks"] completionHandler: ^{
@@ -215,16 +221,10 @@
         return;
     }
     
-    if (_shouldRepeat) keepLooping = YES;
-    
-    previousFrameTime = kCMTimeZero;
-    previousActualFrameTime = CFAbsoluteTimeGetCurrent();
-    
     NSDictionary *inputOptions = [NSDictionary dictionaryWithObject:[NSNumber numberWithBool:YES] forKey:AVURLAssetPreferPreciseDurationAndTimingKey];
     AVURLAsset *inputAsset = [[AVURLAsset alloc] initWithURL:self.url options:inputOptions];
     
     GPUImageMovie __block *blockSelf = self;
-    
     [inputAsset loadValuesAsynchronouslyForKeys:[NSArray arrayWithObject:@"tracks"] completionHandler: ^{
         dispatch_block_t processingBlock = ^{
             NSError *error = nil;
@@ -285,6 +285,9 @@
 - (void)processAsset
 {
     reader = [self createAssetReader];
+    
+    CMTime startTime = CMTIME_IS_VALID(pausedFrameTime) ? pausedFrameTime : kCMTimeZero;
+    reader.timeRange = CMTimeRangeMake(startTime, kCMTimePositiveInfinity);
 
     AVAssetReaderOutput *readerVideoTrackOutput = nil;
     AVAssetReaderOutput *readerAudioTrackOutput = nil;
@@ -302,7 +305,7 @@
 
     if ([reader startReading] == NO) 
     {
-            NSLog(@"Error reading from file at URL: %@", self.url);
+        NSLog(@"Error reading from file at URL: %@", self.url);
         return;
     }
 
@@ -773,6 +776,7 @@
 - (void)resumeProcessing
 {
     _paused = NO;
+    [self startProcessing];
 }
 
 - (void)convertYUVToRGBOutput;
