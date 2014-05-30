@@ -152,6 +152,41 @@
     movieWriter.encodingLiveVideo = NO;
 }
 
+//- (void)startProcessing
+//{
+//    if( self.playerItem ) {
+//        [self processPlayerItem];
+//        return;
+//    }
+//    if(self.url == nil)
+//    {
+//      [self processAsset];
+//      return;
+//    }
+//    
+//    if (_shouldRepeat) keepLooping = YES;
+//    
+//    previousFrameTime = kCMTimeZero;
+//    previousActualFrameTime = CFAbsoluteTimeGetCurrent();
+//  
+//    NSDictionary *inputOptions = [NSDictionary dictionaryWithObject:[NSNumber numberWithBool:YES] forKey:AVURLAssetPreferPreciseDurationAndTimingKey];
+//    AVURLAsset *inputAsset = [[AVURLAsset alloc] initWithURL:self.url options:inputOptions];
+//    
+//    GPUImageMovie __block *blockSelf = self;
+//    
+//    [inputAsset loadValuesAsynchronouslyForKeys:[NSArray arrayWithObject:@"tracks"] completionHandler: ^{
+//        NSError *error = nil;
+//        AVKeyValueStatus tracksStatus = [inputAsset statusOfValueForKey:@"tracks" error:&error];
+//        if (!tracksStatus == AVKeyValueStatusLoaded)
+//        {
+//            return;
+//        }
+//        blockSelf.asset = inputAsset;
+//        [blockSelf processAsset];
+//        blockSelf = nil;
+//    }];
+//}
+
 - (void)startProcessing
 {
     if( self.playerItem ) {
@@ -160,53 +195,22 @@
     }
     if(self.url == nil)
     {
-      [self processAsset];
-      return;
-    }
-    
-    if (_shouldRepeat) keepLooping = YES;
-    
-    previousFrameTime = kCMTimeZero;
-    previousActualFrameTime = CFAbsoluteTimeGetCurrent();
-  
-    NSDictionary *inputOptions = [NSDictionary dictionaryWithObject:[NSNumber numberWithBool:YES] forKey:AVURLAssetPreferPreciseDurationAndTimingKey];
-    AVURLAsset *inputAsset = [[AVURLAsset alloc] initWithURL:self.url options:inputOptions];
-    
-    GPUImageMovie __block *blockSelf = self;
-    
-    [inputAsset loadValuesAsynchronouslyForKeys:[NSArray arrayWithObject:@"tracks"] completionHandler: ^{
-        NSError *error = nil;
-        AVKeyValueStatus tracksStatus = [inputAsset statusOfValueForKey:@"tracks" error:&error];
-        if (!tracksStatus == AVKeyValueStatusLoaded)
-        {
-            return;
-        }
-        blockSelf.asset = inputAsset;
-        [blockSelf processAsset];
-        blockSelf = nil;
-    }];
-}
-
-- (void)startProcessingAsync
-{
-    if( self.playerItem ) {
-        [self processPlayerItem];
-        return;
-    }
-    if(self.url == nil)
-    {
-        GPUImageMovie __block *blockSelf = self;
         [_asset loadValuesAsynchronouslyForKeys:[NSArray arrayWithObject:@"tracks"] completionHandler: ^{
-            runAsynchronouslyOnVideoProcessingQueue(^{
+            dispatch_block_t processingBlock = ^{
                 NSError *error = nil;
                 AVKeyValueStatus tracksStatus = [_asset statusOfValueForKey:@"tracks" error:&error];
                 if (!tracksStatus == AVKeyValueStatusLoaded)
                 {
                     return;
                 }
-                [blockSelf processAsset];
-                blockSelf = nil;
-            });
+                [self processAsset];
+            };
+            
+            if (_runMode == RunModeSynchronously) {
+                runSynchronouslyOnVideoProcessingQueue(processingBlock);
+            } else {
+                runAsynchronouslyOnVideoProcessingQueue(processingBlock);
+            }
         }];
         return;
     }
@@ -222,7 +226,7 @@
     GPUImageMovie __block *blockSelf = self;
     
     [inputAsset loadValuesAsynchronouslyForKeys:[NSArray arrayWithObject:@"tracks"] completionHandler: ^{
-        runAsynchronouslyOnVideoProcessingQueue(^{
+        dispatch_block_t processingBlock = ^{
             NSError *error = nil;
             AVKeyValueStatus tracksStatus = [inputAsset statusOfValueForKey:@"tracks" error:&error];
             if (!tracksStatus == AVKeyValueStatusLoaded)
@@ -232,8 +236,20 @@
             blockSelf.asset = inputAsset;
             [blockSelf processAsset];
             blockSelf = nil;
-        });
+        };
+        if (_runMode == RunModeSynchronously) {
+            runSynchronouslyOnVideoProcessingQueue(processingBlock);
+        } else {
+            runAsynchronouslyOnVideoProcessingQueue(processingBlock);
+        }
     }];
+}
+
+- (void)resetProcessing
+{
+    [reader cancelReading];
+    reader = nil;
+    pausedFrameTime = kCMTimeInvalid;
 }
 
 - (AVAssetReader*)createAssetReader
