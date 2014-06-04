@@ -14,6 +14,7 @@ typedef enum : NSUInteger {
 @protocol GPUImageMovieDelegate <NSObject>
 
 - (void)didCompletePlayingMovie;
+- (void)didReplayMovie;
 - (void)progressDidChanged:(float)progress currentTime:(CMTime)currentTime duration:(CMTime)duration;
 
 @end
