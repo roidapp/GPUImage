@@ -306,6 +306,9 @@
                 dispatch_async(dispatch_get_main_queue(), ^{
                     [self startProcessing];
                 });
+                if ([_delegate respondsToSelector:@selector(didReplayMovie)]) {
+                    [_delegate didReplayMovie];
+                }
             } else {
                 [weakSelf endProcessing];
             }
