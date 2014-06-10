@@ -365,12 +365,18 @@
 
 - (BOOL)readNextVideoFrameFromOutput:(AVAssetReaderOutput *)readerVideoTrackOutput;
 {
+    if (readerVideoTrackOutput == NULL) {
+        return NO;
+    }
+    
     if (reader.status == AVAssetReaderStatusReading && ! videoEncodingIsFinished)
     {
         CMSampleBufferRef sampleBufferRef = [readerVideoTrackOutput copyNextSampleBuffer];
-        if (sampleBufferRef) 
+        
+        if (sampleBufferRef != NULL)
         {
             //NSLog(@"read a video frame: %@", CFBridgingRelease(CMTimeCopyDescription(kCFAllocatorDefault, CMSampleBufferGetOutputPresentationTimeStamp(sampleBufferRef))));
+            
             if (_playAtActualSpeed)
             {
                 // Do this outside of the video processing queue to not slow that down while waiting
@@ -408,8 +414,12 @@
             }
         }
     }
-    else if (synchronizedMovieWriter != nil)
+    else if (synchronizedMovieWriter != NULL)
     {
+        if (synchronizedMovieWriter == NULL) {
+            return NO;
+        }
+        
         if (reader.status == AVAssetReaderStatusCompleted)
         {
             [self endProcessing];
@@ -460,7 +470,7 @@
 
     processingFrameTime = currentSampleTime;
     [self processMovieFrame:movieFrame withSampleTime:currentSampleTime];
-    
+
     if ([_delegate respondsToSelector:@selector(progressDidChanged:currentTime:duration:)]) {
         [_delegate progressDidChanged:self.progress currentTime:processingFrameTime duration:self.asset.duration];
     }
