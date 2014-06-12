@@ -12,8 +12,9 @@
 
 @class GPUImageOutput;
 @class GPUImageMovieFrameOutput;
+@class GPUImageMovieFrameInput;
 @interface GPUImageMovieCompositor : NSObject<AVVideoCompositing>
 @property(nonatomic, strong)GPUImageMovieFrameOutput   *output0;
 @property(nonatomic, strong)GPUImageMovieFrameOutput   *output1;
-@property(nonatomic, strong)id<GPUImageInput>           reuslt;
+@property(nonatomic, strong)GPUImageMovieFrameInput    *reuslt;
 @end

@@ -8,7 +8,8 @@
 
 #import "GPUImageMovieCompositor.h"
 #import "GPUImageMovieInstruction.h"
-#import "GPUImage.h"
+#import "GPUImageMovieFrameOutput.h"
+#import "GPUImageMovieFrameInput.h"
 
 @interface GPUImageMovieCompositor() {
     BOOL								_shouldCancelAllRequests;
@@ -126,19 +127,23 @@
 	return dstPixels;
 }
 
-- (void)renderPixelBuffer:(CVPixelBufferRef)destinationPixelBuffer
-       usingSourceBuffer0:(CVPixelBufferRef)foregroundPixelBuffer
-         andSourceBuffer1:(CVPixelBufferRef)backgroundPixelBuffer
+- (void)renderPixelBuffer:(CVPixelBufferRef)destBuffer
+       usingSourceBuffer0:(CVPixelBufferRef)buffer0
+         andSourceBuffer1:(CVPixelBufferRef)buffer1
                      time:(CMTime)time
 {
     
+    [_reuslt setPixelBuffer:destBuffer];
+    [_output0 processPixelBuffer:buffer0 withSampleTime:time];
+    [_output1 processPixelBuffer:buffer1 withSampleTime:time];
 }
 
-- (void)renderPixelBuffer:(CVPixelBufferRef)destinationPixelBuffer
-       usingSourceBuffer:(CVPixelBufferRef)foregroundPixelBuffer
+- (void)renderPixelBuffer:(CVPixelBufferRef)destBuffer
+       usingSourceBuffer:(CVPixelBufferRef)buffer
                      time:(CMTime)time
 {
-    
+    [_reuslt setPixelBuffer:destBuffer];
+    [_output0 processPixelBuffer:buffer withSampleTime:time];
 }
 
 @end
