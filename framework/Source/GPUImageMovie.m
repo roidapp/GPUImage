@@ -26,6 +26,7 @@
     BOOL isFullYUVRange;
 
     int imageBufferWidth, imageBufferHeight;
+    dispatch_queue_t videoProcessQueue;
 }
 
 - (void)processAsset;
@@ -40,52 +41,57 @@
 @synthesize playAtActualSpeed = _playAtActualSpeed;
 @synthesize delegate = _delegate;
 @synthesize shouldRepeat = _shouldRepeat;
+@synthesize paused = _paused;
 
 #pragma mark -
 #pragma mark Initialization and teardown
-
-- (id)initWithURL:(NSURL *)url;
+- (instancetype)init
 {
-    if (!(self = [super init])) 
-    {
-        return nil;
-    }
-
-    [self yuvConversionSetup];
-
-    self.url = url;
-    self.asset = nil;
-
-    return self;
-}
-
-- (id)initWithAsset:(AVAsset *)asset;
-{
-    if (!(self = [super init])) 
-    {
-      return nil;
+    self = [super init];
+    if (self) {
+        videoProcessQueue = dispatch_queue_create("com.roidapp.video.processing.queue", NULL);
     }
     
-    [self yuvConversionSetup];
+    return self;
+}
 
-    self.url = nil;
-    self.asset = asset;
+- (instancetype)initWithURL:(NSURL *)url;
+{
+    self = [self init];
+    if (self) {
+        [self yuvConversionSetup];
+        
+        self.url = url;
+        self.asset = nil;
+    }
+    
+    return self;
+}
+
+- (instancetype)initWithAsset:(AVAsset *)asset;
+{
+    self = [self init];
+    if (self) {
+        [self yuvConversionSetup];
+        
+        self.url = nil;
+        self.asset = asset;
+
+    }
 
     return self;
 }
 
-- (id)initWithPlayerItem:(AVPlayerItem *)playerItem;
+- (instancetype)initWithPlayerItem:(AVPlayerItem *)playerItem;
 {
-    if (!(self = [super init]))
-    {
-        return nil;
+    self = [self init];
+    if (self) {
+        [self yuvConversionSetup];
+        
+        self.url = nil;
+        self.asset = nil;
+        self.playerItem = playerItem;
     }
-
-    [self yuvConversionSetup];
-
-    self.url = nil;
-    self.asset = nil;
-    self.playerItem = playerItem;
 
     return self;
 }
@@ -135,6 +141,7 @@
 
 - (void)dealloc
 {
+    dispatch_release(videoProcessQueue);
     // Moved into endProcessing
     //if (self.playerItem && (displayLink != nil))
     //{
@@ -152,55 +159,16 @@
     movieWriter.encodingLiveVideo = NO;
 }
 
-//- (void)startProcessing
-//{
-//    if( self.playerItem ) {
-//        [self processPlayerItem];
-//        return;
-//    }
-//    if(self.url == nil)
-//    {
-//      [self processAsset];
-//      return;
-//    }
-//    
-//    if (_shouldRepeat) keepLooping = YES;
-//    
-//    previousFrameTime = kCMTimeZero;
-//    previousActualFrameTime = CFAbsoluteTimeGetCurrent();
-//  
-//    NSDictionary *inputOptions = [NSDictionary dictionaryWithObject:[NSNumber numberWithBool:YES] forKey:AVURLAssetPreferPreciseDurationAndTimingKey];
-//    AVURLAsset *inputAsset = [[AVURLAsset alloc] initWithURL:self.url options:inputOptions];
-//    
-//    GPUImageMovie __block *blockSelf = self;
-//    
-//    [inputAsset loadValuesAsynchronouslyForKeys:[NSArray arrayWithObject:@"tracks"] completionHandler: ^{
-//        NSError *error = nil;
-//        AVKeyValueStatus tracksStatus = [inputAsset statusOfValueForKey:@"tracks" error:&error];
-//        if (!tracksStatus == AVKeyValueStatusLoaded)
-//        {
-//            return;
-//        }
-//        blockSelf.asset = inputAsset;
-//        [blockSelf processAsset];
-//        blockSelf = nil;
-//    }];
-//}
-
 - (void)startProcessing
 {
     if (_shouldRepeat) keepLooping = YES;
-    
-    previousFrameTime = CMTIME_IS_VALID(pausedFrameTime) ? pausedFrameTime : kCMTimeZero;
-    previousActualFrameTime = CFAbsoluteTimeGetCurrent();
     
     if( self.playerItem ) {
         [self processPlayerItem];
         return;
     }
     
-    if(self.url == nil)
-    {
+    if (self.url == nil) {
         [_asset loadValuesAsynchronouslyForKeys:[NSArray arrayWithObject:@"tracks"] completionHandler: ^{
             dispatch_block_t processingBlock = ^{
                 NSError *error = nil;
@@ -213,9 +181,9 @@
             };
             
             if (_runMode == RunModeSynchronously) {
-                runSynchronouslyOnVideoProcessingQueue(processingBlock);
+                dispatch_sync(videoProcessQueue, processingBlock);
             } else {
-                runAsynchronouslyOnVideoProcessingQueue(processingBlock);
+                dispatch_async(videoProcessQueue, processingBlock);
             }
         }];
         return;
@@ -238,9 +206,9 @@
             blockSelf = nil;
         };
         if (_runMode == RunModeSynchronously) {
-            runSynchronouslyOnVideoProcessingQueue(processingBlock);
+            dispatch_sync(videoProcessQueue, processingBlock);
         } else {
-            runAsynchronouslyOnVideoProcessingQueue(processingBlock);
+            dispatch_async(videoProcessQueue, processingBlock);
         }
     }];
 }
@@ -250,6 +218,8 @@
     [reader cancelReading];
     reader = nil;
     pausedFrameTime = kCMTimeInvalid;
+    videoEncodingIsFinished = NO;
+    audioEncodingIsFinished = NO;
 }
 
 - (AVAssetReader*)createAssetReader
@@ -305,14 +275,13 @@
 
     if ([reader startReading] == NO) 
     {
-        NSLog(@"Error reading from file at URL: %@", self.url);
+            NSLog(@"Error reading from file at URL: %@", self.url);
         return;
     }
 
     __unsafe_unretained GPUImageMovie *weakSelf = self;
 
-    if (synchronizedMovieWriter != nil)
-    {
+    if (synchronizedMovieWriter != nil) {
         [synchronizedMovieWriter setVideoInputReadyCallback:^{
             return [weakSelf readNextVideoFrameFromOutput:readerVideoTrackOutput];
         }];
@@ -320,28 +289,20 @@
         [synchronizedMovieWriter setAudioInputReadyCallback:^{
             return [weakSelf readNextAudioSampleFromOutput:readerAudioTrackOutput];
         }];
-
         [synchronizedMovieWriter enableSynchronizationCallbacks];
-    }
-    else
-    {
-        while (reader.status == AVAssetReaderStatusReading && (!_shouldRepeat || keepLooping))
-        {
-                [weakSelf readNextVideoFrameFromOutput:readerVideoTrackOutput];
-
-            if ( (readerAudioTrackOutput) && (!audioEncodingIsFinished) )
-            {
-                    [weakSelf readNextAudioSampleFromOutput:readerAudioTrackOutput];
+    } else {
+        while (reader.status == AVAssetReaderStatusReading && (!_shouldRepeat || keepLooping)) {
+            [weakSelf readNextVideoFrameFromOutput:readerVideoTrackOutput];
+            
+            if((readerAudioTrackOutput) && (!audioEncodingIsFinished)) {
+                [weakSelf readNextAudioSampleFromOutput:readerAudioTrackOutput];
             }
-
         }
 
         if (reader.status == AVAssetWriterStatusCompleted) {
-                
             [reader cancelReading];
-
             if (keepLooping) {
-                reader = nil;
+                [self resetProcessing];
                 dispatch_async(dispatch_get_main_queue(), ^{
                     [self startProcessing];
                 });
@@ -404,12 +365,18 @@
 
 - (BOOL)readNextVideoFrameFromOutput:(AVAssetReaderOutput *)readerVideoTrackOutput;
 {
+    if (readerVideoTrackOutput == NULL) {
+        return NO;
+    }
+    
     if (reader.status == AVAssetReaderStatusReading && ! videoEncodingIsFinished)
     {
         CMSampleBufferRef sampleBufferRef = [readerVideoTrackOutput copyNextSampleBuffer];
-        if (sampleBufferRef) 
+        
+        if (sampleBufferRef != NULL)
         {
             //NSLog(@"read a video frame: %@", CFBridgingRelease(CMTimeCopyDescription(kCFAllocatorDefault, CMSampleBufferGetOutputPresentationTimeStamp(sampleBufferRef))));
+            
             if (_playAtActualSpeed)
             {
                 // Do this outside of the video processing queue to not slow that down while waiting
@@ -447,8 +414,12 @@
             }
         }
     }
-    else if (synchronizedMovieWriter != nil)
+    else if (synchronizedMovieWriter != NULL)
     {
+        if (synchronizedMovieWriter == NULL) {
+            return NO;
+        }
+        
         if (reader.status == AVAssetReaderStatusCompleted)
         {
             [self endProcessing];
@@ -499,9 +470,8 @@
 
     processingFrameTime = currentSampleTime;
     [self processMovieFrame:movieFrame withSampleTime:currentSampleTime];
-    
-    if ([_delegate respondsToSelector:@selector(progressDidChanged:currentTime:duration:)])
-    {
+
+    if ([_delegate respondsToSelector:@selector(progressDidChanged:currentTime:duration:)]) {
         [_delegate progressDidChanged:self.progress currentTime:processingFrameTime duration:self.asset.duration];
     }
 }
