@@ -7,7 +7,7 @@
 //
 
 #import <Foundation/Foundation.h>
-#import <GPUImageContext.h>
+#import "GPUImageContext.h"
 
 @interface GPUImageMovieFrameInput : NSObject<GPUImageInput>
 

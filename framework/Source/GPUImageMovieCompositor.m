@@ -25,6 +25,16 @@
 
 @implementation GPUImageMovieCompositor
 
+- (instancetype)init{
+    self = [super init];
+    if (self){
+        _renderingQueue = dispatch_queue_create("com.apple.aplcustomvideocompositor.renderingqueue", DISPATCH_QUEUE_SERIAL);
+		_renderContextQueue = dispatch_queue_create("com.apple.aplcustomvideocompositor.rendercontextqueue", DISPATCH_QUEUE_SERIAL);
+        [[NSNotificationCenter defaultCenter] postNotificationName:@"GPUImageMovieCompositor" object:nil userInfo:@{ @"instance": self}];
+    }
+    return self;
+}
+
 - (NSDictionary*)sourcePixelBufferAttributes
 {
     return @{ (NSString *)kCVPixelBufferPixelFormatTypeKey : [NSNumber numberWithUnsignedInt:kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange],
@@ -33,7 +43,8 @@
 
 - (NSDictionary*)requiredPixelBufferAttributesForRenderContext
 {
-    return @{ (NSString *)kCVPixelBufferPixelFormatTypeKey : [NSNumber numberWithUnsignedInt:kCVPixelFormatType_32BGRA],
+    return @{ //(NSString *)kCVPixelBufferPixelFormatTypeKey : [NSNumber numberWithUnsignedInt:kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange],
+              (NSString *)kCVPixelBufferPixelFormatTypeKey : [NSNumber numberWithUnsignedInt:kCVPixelFormatType_32BGRA],
 			  (NSString*)kCVPixelBufferOpenGLESCompatibilityKey : [NSNumber numberWithBool:YES]};
 }
 
@@ -57,8 +68,54 @@
 			} else {
 				NSError *err = nil;
 				// Get the next rendererd pixel buffer
+                
 				CVPixelBufferRef resultPixels = [self newRenderedPixelBufferForRequest:request error:&err];
-				
+                /*
+                int w = CVPixelBufferGetWidth(resultPixels);
+                int h = CVPixelBufferGetHeight(resultPixels);
+                int r = CVPixelBufferGetBytesPerRow(resultPixels);
+                int bytesPerPixel = r/w;
+                
+                CVPixelBufferLockBaseAddress(resultPixels, 0);
+                unsigned char *buffer = CVPixelBufferGetBaseAddress(resultPixels);
+                CVPixelBufferUnlockBaseAddress(resultPixels, 0);
+                if (buffer != NULL) {
+                    UIGraphicsBeginImageContext(CGSizeMake(w, h));
+                    
+                    CGContextRef c = UIGraphicsGetCurrentContext();
+                    
+                    unsigned char* data = CGBitmapContextGetData(c);
+                    if (data != NULL) {
+                        int maxY = h;
+                        for(int y = 0; y<maxY; y++) {
+                            for(int x = 0; x<w; x++) {
+                                int offset = bytesPerPixel*((w*y)+x);
+                                data[offset] = buffer[offset];     // R
+                                data[offset+1] = buffer[offset+1]; // G
+                                data[offset+2] = buffer[offset+2]; // B
+                                data[offset+3] = buffer[offset+3]; // A
+                            }
+                        }
+                    }
+                    UIImage *img = UIGraphicsGetImageFromCurrentImageContext();
+                    
+                    NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory,NSUserDomainMask,YES);
+                    NSString *path = paths[0];
+                    
+                    double time = CMTimeGetSeconds(request.compositionTime);
+                    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
+                        NSString *name = [path stringByAppendingFormat:@"/frame_%g.jpg", time];
+                        [UIImageJPEGRepresentation(img, 0.5) writeToFile:name atomically:YES];
+                    });
+                    
+//                    NSLog(@"%@", img);
+                    
+                    UIGraphicsEndImageContext();
+                    
+                }else{
+                    NSLog(@"##############");
+                }
+            */
 				if (resultPixels) {
 					// The resulting pixelbuffer from OpenGL renderer is passed along to the request
 					[request finishWithComposedVideoFrame:resultPixels];
@@ -133,16 +190,17 @@
                      time:(CMTime)time
 {
     
-    [_reuslt setPixelBuffer:destBuffer];
-    [_output0 processPixelBuffer:buffer0 withSampleTime:time];
+    [_result setPixelBuffer:destBuffer];
     [_output1 processPixelBuffer:buffer1 withSampleTime:time];
+    [_output0 processPixelBuffer:buffer0 withSampleTime:time];
+    
 }
 
 - (void)renderPixelBuffer:(CVPixelBufferRef)destBuffer
        usingSourceBuffer:(CVPixelBufferRef)buffer
                      time:(CMTime)time
 {
-    [_reuslt setPixelBuffer:destBuffer];
+    [_result setPixelBuffer:destBuffer];
     [_output0 processPixelBuffer:buffer withSampleTime:time];
 }
 
