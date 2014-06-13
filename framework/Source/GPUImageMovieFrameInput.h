@@ -10,6 +10,7 @@
 #import "GPUImageContext.h"
 
 @interface GPUImageMovieFrameInput : NSObject<GPUImageInput>
+@property (nonatomic, assign) CGSize videoSize;
 
 - (void)setPixelBuffer:(CVPixelBufferRef)buffer;
 

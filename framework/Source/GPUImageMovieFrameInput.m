@@ -43,6 +43,8 @@ NSString *const kGPUImageColorSwizzlingFragmentShaderString1 = SHADER_STRING
 - (id)init{
     self = [super init];
     if (self){
+        _videoSize = CGSizeMake(480, 480);
+        
         _movieWriterContext = [GPUImageContext sharedImageProcessingContext];
         
         [_movieWriterContext useAsCurrentContext];
@@ -118,7 +120,7 @@ NSString *const kGPUImageColorSwizzlingFragmentShaderString1 = SHADER_STRING
     }
 
     glBindFramebuffer(GL_FRAMEBUFFER, movieFramebuffer);
-    glViewport(0, 0, (int)640, (int)360);
+    glViewport(0, 0, (int)_videoSize.width, (int)_videoSize.height);
     
     CVOpenGLESTextureRef renderTexture = nil;
     
