@@ -21,7 +21,7 @@
 #import "GPUImageFramebufferCache.h"
 
 // Video Composition
-#import "GPUImageMovieCompositor.m"
+#import "GPUImageMovieCompositor.h"
 #import "GPUImageMovieFrameInput.h"
 #import "GPUImageMovieFrameOutput.h"
 #import "GPUImageMovieInstruction.h"
