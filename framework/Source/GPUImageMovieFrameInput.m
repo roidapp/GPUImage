@@ -21,7 +21,7 @@ NSString *const kGPUImageColorSwizzlingFragmentShaderString1 = SHADER_STRING
  {
      gl_FragColor = texture2D(inputImageTexture, textureCoordinate).bgra;
  }
- );
+);
 
 @interface GPUImageMovieFrameInput()
 {
@@ -103,92 +103,11 @@ NSString *const kGPUImageColorSwizzlingFragmentShaderString1 = SHADER_STRING
 
 - (void)newFrameReadyAtTime:(CMTime)frameTime atIndex:(NSInteger)textureIndex;
 {
-//    int bufferHeight = (int) CVPixelBufferGetHeight(targetBuffer);
-//    int bufferWidth = (int) CVPixelBufferGetWidth(targetBuffer);
-//    
-//    
-//    
-//    
-//    if ([GPUImageContext supportsFastTextureUpload])
-//    {
-//        CVOpenGLESTextureRef targetTextureRef = NULL;
-//        
-//        //        if (captureAsYUV && [GPUImageContext deviceSupportsRedTextures])
-//        if (CVPixelBufferGetPlaneCount(targetBuffer) > 0) // Check for YUV planar inputs to do RGB conversion
-//        {
-//            
-//            CVReturn err;
-//            // Y-plane
-//            glActiveTexture(GL_TEXTURE);
-//            if ([GPUImageContext deviceSupportsRedTextures])
-//            {
-//                err = CVOpenGLESTextureCacheCreateTextureFromImage(kCFAllocatorDefault, [[GPUImageContext sharedImageProcessingContext] coreVideoTextureCache], targetBuffer, NULL, GL_TEXTURE_2D, GL_LUMINANCE, bufferWidth, bufferHeight, GL_LUMINANCE, GL_UNSIGNED_BYTE, 0, &targetTextureRef);
-//            }
-//            else
-//            {
-//                err = CVOpenGLESTextureCacheCreateTextureFromImage(kCFAllocatorDefault, [[GPUImageContext sharedImageProcessingContext] coreVideoTextureCache], targetBuffer, NULL, GL_TEXTURE_2D, GL_LUMINANCE, bufferWidth, bufferHeight, GL_LUMINANCE, GL_UNSIGNED_BYTE, 0, &targetTextureRef);
-//            }
-//            if (err)
-//            {
-//                NSLog(@"Error at CVOpenGLESTextureCacheCreateTextureFromImage %d", err);
-//            }
-//            
-//            GLint targetTextureName = CVOpenGLESTextureGetName(targetTextureRef);
-//            
-//            glBindFramebuffer(GL_FRAMEBUFFER, targetTextureName);
-//            glViewport(0, 0, bufferWidth, bufferHeight);
-//            
-//            glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-//            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-//            
-//            static const GLfloat textureCoordinates[] = {
-//                0.0f, 0.0f,
-//                1.0f, 0.0f,
-//                0.0f, 1.0f,
-//                1.0f, 1.0f,
-//            };
-//            
-//            glActiveTexture(GL_TEXTURE);
-//            glBindTexture(GL_TEXTURE_2D, luminanceTexture);
-//            glUniform1i(yuvConversionLuminanceTextureUniform, 4);
-//            
-//            glVertexAttribPointer(yuvConversionTextureCoordinateAttribute, 2, GL_FLOAT, 0, 0, textureCoordinates);
-//            
-//            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-//            
-//
-//            
-//            
-////            CVPixelBufferUnlockBaseAddress(movieFrame, 0);
-//            CFRelease(targetTextureRef);
-//
-//        }
-    
-    
-    // Render the frame with swizzled colors, so that they can be uploaded quickly as BGRA frames
-//    [_movieWriterContext useAsCurrentContext];
     [self renderAtInternalSizeUsingFramebuffer:firstInputFramebuffer];
     
     [firstInputFramebuffer unlock];
     firstInputFramebuffer = nil;
 }
-
-//- (void)setFilterFBO;
-//{
-////    if (!movieFramebuffer)
-////    {
-////        [self createDataFBO];
-////    }
-////    
-////    glBindFramebuffer(GL_FRAMEBUFFER, movieFramebuffer);
-////    
-////    glViewport(0, 0, (int)videoSize.width, (int)videoSize.height);
-//    
-//    
-//    glBindFramebuffer(GL_FRAMEBUFFER, movieFramebuffer);
-//    
-//    glViewport(0, 0, (int)videoSize.width, (int)videoSize.height);
-//}
 
 - (CVOpenGLESTextureRef)createDataFBO;
 {
@@ -255,10 +174,6 @@ NSString *const kGPUImageColorSwizzlingFragmentShaderString1 = SHADER_STRING
 
 - (void)renderAtInternalSizeUsingFramebuffer:(GPUImageFramebuffer *)inputFramebufferToUse;
 {
-//    [_movieWriterContext useAsCurrentContext];
-//    [self setFilterFBO];
-//    [[GPUImageContext sharedImageProcessingContext] useAsCurrentContext];
-    
     CVOpenGLESTextureRef renderTexture = [self createDataFBO];
     
     [_movieWriterContext setContextShaderProgram:colorSwizzlingProgram];
@@ -290,8 +205,6 @@ NSString *const kGPUImageColorSwizzlingFragmentShaderString1 = SHADER_STRING
     glFinish();
     CFRelease(renderTexture);
 }
-
-
 
 - (NSInteger)nextAvailableTextureIndex{
     return 0;

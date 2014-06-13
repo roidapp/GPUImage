@@ -20,6 +20,12 @@
 #import "GPUImageFramebuffer.h"
 #import "GPUImageFramebufferCache.h"
 
+// Video Composition
+#import "GPUImageMovieCompositor.m"
+#import "GPUImageMovieFrameInput.h"
+#import "GPUImageMovieFrameOutput.h"
+#import "GPUImageMovieInstruction.h"
+
 // Filters
 #import "GPUImageFilter.h"
 #import "GPUImageTwoInputFilter.h"
