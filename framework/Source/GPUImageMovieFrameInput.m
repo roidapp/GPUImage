@@ -31,6 +31,7 @@ NSString *const kGPUImageColorSwizzlingFragmentShaderString1 = SHADER_STRING
     GLProgram *colorSwizzlingProgram;
     GLint colorSwizzlingPositionAttribute, colorSwizzlingTextureCoordinateAttribute;
     GLint colorSwizzlingInputTextureUniform;
+    GLuint movieFramebuffer;
     
     GPUImageContext *_movieWriterContext;
 }
@@ -94,7 +95,7 @@ NSString *const kGPUImageColorSwizzlingFragmentShaderString1 = SHADER_STRING
 
 - (void)setInputFramebuffer:(GPUImageFramebuffer *)newInputFramebuffer atIndex:(NSInteger)textureIndex;
 {
-//    [newInputFramebuffer lock];
+    [newInputFramebuffer lock];
     //    runSynchronouslyOnContextQueue(_movieWriterContext, ^{
     firstInputFramebuffer = newInputFramebuffer;
     //    });
@@ -163,13 +164,13 @@ NSString *const kGPUImageColorSwizzlingFragmentShaderString1 = SHADER_STRING
 //
 //        }
     
-    glFinish();
     
     // Render the frame with swizzled colors, so that they can be uploaded quickly as BGRA frames
 //    [_movieWriterContext useAsCurrentContext];
     [self renderAtInternalSizeUsingFramebuffer:firstInputFramebuffer];
     
-    glFlush();
+    [firstInputFramebuffer unlock];
+    firstInputFramebuffer = nil;
 }
 
 //- (void)setFilterFBO;
@@ -191,9 +192,14 @@ NSString *const kGPUImageColorSwizzlingFragmentShaderString1 = SHADER_STRING
 
 - (CVOpenGLESTextureRef)createDataFBO;
 {
-//    glActiveTexture(GL_TEXTURE1);
-//    glGenFramebuffers(1, &movieFramebuffer);
-//    glBindFramebuffer(GL_FRAMEBUFFER, movieFramebuffer);
+    if (!movieFramebuffer) {
+            glActiveTexture(GL_TEXTURE1);
+            glGenFramebuffers(1, &movieFramebuffer);
+            glBindFramebuffer(GL_FRAMEBUFFER, movieFramebuffer);
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, movieFramebuffer);
+    glViewport(0, 0, (int)640, (int)360);
     
     CVOpenGLESTextureRef renderTexture = nil;
     
@@ -251,6 +257,7 @@ NSString *const kGPUImageColorSwizzlingFragmentShaderString1 = SHADER_STRING
 {
 //    [_movieWriterContext useAsCurrentContext];
 //    [self setFilterFBO];
+//    [[GPUImageContext sharedImageProcessingContext] useAsCurrentContext];
     
     CVOpenGLESTextureRef renderTexture = [self createDataFBO];
     
@@ -279,20 +286,6 @@ NSString *const kGPUImageColorSwizzlingFragmentShaderString1 = SHADER_STRING
 	glVertexAttribPointer(colorSwizzlingTextureCoordinateAttribute, 2, GL_FLOAT, 0, 0, textureCoordinates);
     
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-    
-    CVPixelBufferRef destPixelBuffer = NULL;
-    CVPixelBufferCreate(kCFAllocatorDefault,
-                        640,
-                        360,
-                        kCVPixelFormatType_32BGRA,
-                        NULL,
-                        &destPixelBuffer);
-    
-    CVPixelBufferLockBaseAddress(destPixelBuffer, 0);
-    GLubyte *pixelData = (GLubyte *)CVPixelBufferGetBaseAddress(destPixelBuffer);
-    glReadPixels(0, 0, 640, 360, GL_BGRA, GL_UNSIGNED_BYTE, pixelData);
-    
-    [self dumpBuffer:destPixelBuffer time:CFAbsoluteTimeGetCurrent()];
     
     glFinish();
     CFRelease(renderTexture);
@@ -328,49 +321,5 @@ NSString *const kGPUImageColorSwizzlingFragmentShaderString1 = SHADER_STRING
 - (void)setCurrentlyReceivingMonochromeInput:(BOOL)newValue{
     
 }
-
-- (void)dumpBuffer:(CVPixelBufferRef)resultPixels time:(double)time {
-    int w = CVPixelBufferGetWidth(resultPixels);
-    int h = CVPixelBufferGetHeight(resultPixels);
-    int r = CVPixelBufferGetBytesPerRow(resultPixels);
-    int bytesPerPixel = r/w;
-    
-    static int i = 0;
-    
-    CVPixelBufferLockBaseAddress(resultPixels, 0);
-    unsigned char *buffer = CVPixelBufferGetBaseAddress(resultPixels);
-    CVPixelBufferUnlockBaseAddress(resultPixels, 0);
-    if (buffer != NULL) {
-        UIGraphicsBeginImageContext(CGSizeMake(w, h));
-        
-        CGContextRef c = UIGraphicsGetCurrentContext();
-        
-        unsigned char* data = CGBitmapContextGetData(c);
-        if (data != NULL) {
-            int maxY = h;
-            for(int y = 0; y<maxY; y++) {
-                for(int x = 0; x<w; x++) {
-                    int offset = bytesPerPixel*((w*y)+x);
-                    data[offset] = buffer[offset];     // R
-                    data[offset+1] = buffer[offset+1]; // G
-                    data[offset+2] = buffer[offset+2]; // B
-                    data[offset+3] = buffer[offset+3]; // A
-                }
-            }
-        }
-        UIImage *img = UIGraphicsGetImageFromCurrentImageContext();
-        
-        NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory,NSUserDomainMask,YES);
-        NSString *path = paths[0];
-        
-        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
-            NSString *name = [path stringByAppendingFormat:@"/frame_%lx_%d.jpg", (intptr_t)self,i++];
-            [UIImageJPEGRepresentation(img, 0.5) writeToFile:name atomically:YES];
-        });
-        
-        UIGraphicsEndImageContext();
-    }
-}
-
 
 @end

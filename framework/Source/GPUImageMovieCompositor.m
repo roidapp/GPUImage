@@ -30,6 +30,10 @@
     if (self){
         _renderingQueue = dispatch_queue_create("com.apple.aplcustomvideocompositor.renderingqueue", DISPATCH_QUEUE_SERIAL);
 		_renderContextQueue = dispatch_queue_create("com.apple.aplcustomvideocompositor.rendercontextqueue", DISPATCH_QUEUE_SERIAL);
+        _output0 = [[GPUImageMovieFrameOutput alloc] init];
+        _output1 = [[GPUImageMovieFrameOutput alloc] init];
+        _result  = [[GPUImageMovieFrameInput alloc] init];
+        
         [[NSNotificationCenter defaultCenter] postNotificationName:@"GPUImageMovieCompositor" object:nil userInfo:@{ @"instance": self}];
     }
     return self;
