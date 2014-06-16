@@ -11,10 +11,18 @@
 #import "GPUImageMovieFrameOutput.h"
 #import "GPUImageMovieFrameInput.h"
 
+#define SuppressPerformSelectorLeakWarning(Stuff) do { \
+_Pragma("clang diagnostic push") \
+_Pragma("clang diagnostic ignored \"-Warc-performSelector-leaks\"") \
+Stuff; \
+_Pragma("clang diagnostic pop") \
+} while (0)
+
+static id videoStyle = nil;
+
 @interface GPUImageMovieCompositor() {
     BOOL								_shouldCancelAllRequests;
     BOOL								_renderContextDidChange;
-    dispatch_queue_t					_renderingQueue;
     dispatch_queue_t					_renderContextQueue;
     AVVideoCompositionRenderContext*	_renderContext;
     CVPixelBufferRef					_previousBuffer;
@@ -24,21 +32,22 @@
 @end
 
 @implementation GPUImageMovieCompositor
++ (void)setCurrStyle:(VideoStyle *)style
+{
+    videoStyle = style;
+}
 
 - (instancetype)init{
     self = [super init];
     if (self){
-        _renderingQueue = dispatch_queue_create("com.apple.aplcustomvideocompositor.renderingqueue", DISPATCH_QUEUE_SERIAL);
 		_renderContextQueue = dispatch_queue_create("com.apple.aplcustomvideocompositor.rendercontextqueue", DISPATCH_QUEUE_SERIAL);
-        _output0 = [[GPUImageMovieFrameOutput alloc] init];
-        _output1 = [[GPUImageMovieFrameOutput alloc] init];
-        _result  = [[GPUImageMovieFrameInput alloc] init];
-        
-        [[NSNotificationCenter defaultCenter] postNotificationName:kGPUImageMovieCompositorCreatedNotification
-                                                            object:nil
-                                                          userInfo:@{ @"instance": self}];
+        SuppressPerformSelectorLeakWarning([videoStyle performSelector:NSSelectorFromString(@"setCompositor:") withObject:self];);
     }
     return self;
+}
+
+- (void)dealloc{
+    dispatch_release(_renderContextQueue);
 }
 
 - (NSDictionary*)sourcePixelBufferAttributes
@@ -66,9 +75,8 @@
 - (void)startVideoCompositionRequest:(AVAsynchronousVideoCompositionRequest *)request
 {
 	@autoreleasepool {
-		dispatch_async(_renderingQueue,^() {
-			
-			// Check if all pending requests have been cancelled
+        runAsynchronouslyOnVideoProcessingQueue(^{
+            // Check if all pending requests have been cancelled
 			if (_shouldCancelAllRequests) {
 				[request finishCancelledRequest];
 			} else {
@@ -84,7 +92,7 @@
 					[request finishWithError:err];
 				}
 			}
-		});
+        });
 	}
 }
 
@@ -93,7 +101,7 @@
 	// pending requests will call finishCancelledRequest, those already rendering will call finishWithComposedVideoFrame
 	_shouldCancelAllRequests = YES;
 	
-	dispatch_barrier_async(_renderingQueue, ^() {
+	dispatch_barrier_async([GPUImageContext sharedContextQueue], ^() {
 		// start accepting requests again
 		_shouldCancelAllRequests = NO;
 	});

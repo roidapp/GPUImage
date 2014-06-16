@@ -197,8 +197,6 @@ NSString *const kGPUImageColorSwizzlingFragmentShaderString1 = SHADER_STRING
 	glBindTexture(GL_TEXTURE_2D, [inputFramebufferToUse texture]);
 	glUniform1i(colorSwizzlingInputTextureUniform, 4);
     
-    NSLog(@"Movie writer framebuffer: %@", inputFramebufferToUse);
-    
     glVertexAttribPointer(colorSwizzlingPositionAttribute, 2, GL_FLOAT, 0, 0, squareVertices);
 	glVertexAttribPointer(colorSwizzlingTextureCoordinateAttribute, 2, GL_FLOAT, 0, 0, textureCoordinates);
     

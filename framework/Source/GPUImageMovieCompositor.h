@@ -15,6 +15,7 @@
 @class GPUImageOutput;
 @class GPUImageMovieFrameOutput;
 @class GPUImageMovieFrameInput;
+@class VideoStyle;
 
 @protocol GPUImageMovieCompositorDelegate <NSObject>
 - (void)compositorWillProcessFrameAtTime:(CMTime)time;
@@ -25,4 +26,6 @@
 @property(nonatomic, strong)GPUImageMovieFrameOutput   *output1;
 @property(nonatomic, strong)GPUImageMovieFrameInput    *result;
 @property(nonatomic, assign)id<GPUImageMovieCompositorDelegate> delegate;
+
++ (void)setCurrStyle:(VideoStyle*)style;
 @end
