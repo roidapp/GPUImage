@@ -10,7 +10,7 @@
 #import <AVFoundation/AVFoundation.h>
 
 @interface GPUImageMovieInstruction : NSObject<AVVideoCompositionInstruction>
-- (id)initTransitionWithSourceTrackIDs:(NSArray*)sourceTrackIDs indexes:(NSArray*)indexes forTimeRange:(CMTimeRange)timeRange;
+- (id)initTransitionWithSourceTrackIDs:(NSArray *)sourceTrackIDs indexes:(NSDictionary *)outputMap forTimeRange:(CMTimeRange)timeRange;
 
 - (NSInteger)indexOfTrackID:(NSNumber*)trackID;
 @end

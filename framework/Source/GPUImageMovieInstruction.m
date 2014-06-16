@@ -28,7 +28,7 @@
 		_passthroughTrackID = kCMPersistentTrackID_Invalid;
 		_timeRange = timeRange;
 		_containsTweening = TRUE;
-		_enablePostProcessing = FALSE;
+		_enablePostProcessing = TRUE;
         _outputMap = outputMap;
 	}
 	
