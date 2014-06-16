@@ -22,8 +22,7 @@
 @end
 
 @interface GPUImageMovieCompositor : NSObject<AVVideoCompositing>
-@property(nonatomic, strong)GPUImageMovieFrameOutput   *output0;
-@property(nonatomic, strong)GPUImageMovieFrameOutput   *output1;
+@property(nonatomic, strong)NSArray                    *outputs;
 @property(nonatomic, strong)GPUImageMovieFrameInput    *result;
 @property(nonatomic, assign)id<GPUImageMovieCompositorDelegate> delegate;
 

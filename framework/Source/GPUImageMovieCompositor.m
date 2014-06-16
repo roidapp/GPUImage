@@ -111,18 +111,14 @@ static id videoStyle = nil;
 {
 	CVPixelBufferRef dstPixels = nil;
 	
-	// tweenFactor indicates how far within that timeRange are we rendering this frame. This is normalized to vary between 0.0 and 1.0.
-	// 0.0 indicates the time at first frame in that videoComposition timeRange
-	// 1.0 indicates the time at last frame in that videoComposition timeRange
-	//float tweenFactor = factorForTimeInRange(request.compositionTime, request.videoCompositionInstruction.timeRange);
-	
 	GPUImageMovieInstruction *currentInstruction = request.videoCompositionInstruction;
 	NSArray *trackIDs = currentInstruction.requiredSourceTrackIDs;
     
-    CVPixelBufferRef buffer0 = [request sourceFrameByTrackID:[trackIDs[0] intValue]];
-    CVPixelBufferRef buffer1 = NULL;
-    if (currentInstruction.requiredSourceTrackIDs.count ==2) {
-        buffer1 = [request sourceFrameByTrackID:[trackIDs[1] intValue]];
+    CVPixelBufferRef buffer[8] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
+    NSAssert(trackIDs.count <= 8, @"tracks out of range");
+    for (int i = 0; i < trackIDs.count; i++) {
+        CMPersistentTrackID trackID = [trackIDs[i] intValue];
+        buffer[i] = [request sourceFrameByTrackID:trackID];
     }
 	
 	// Destination pixel buffer into which we render the output
@@ -143,33 +139,16 @@ static id videoStyle = nil;
 		_renderContextDidChange = NO;
 	}
 	
-    if (trackIDs.count == 1) {
-        [self renderPixelBuffer:dstPixels usingSourceBuffer:buffer0 time:request.compositionTime];
-    } else if (trackIDs.count == 2) {
-        [self renderPixelBuffer:dstPixels usingSourceBuffer0:buffer0 andSourceBuffer1:buffer1 time:request.compositionTime];
+    CMTime currTime = request.compositionTime;
+    [_result setPixelBuffer:dstPixels];
+    
+    for (int i = 0; i < trackIDs.count; i++) {
+        NSInteger idx = [currentInstruction indexOfTrackID:trackIDs[i]];
+        GPUImageMovieFrameOutput *output = _outputs[idx];
+        [output processPixelBuffer:buffer[i] withSampleTime:currTime];
     }
     
 	return dstPixels;
-}
-
-- (void)renderPixelBuffer:(CVPixelBufferRef)destBuffer
-       usingSourceBuffer0:(CVPixelBufferRef)buffer0
-         andSourceBuffer1:(CVPixelBufferRef)buffer1
-                     time:(CMTime)time
-{
-    
-    [_result setPixelBuffer:destBuffer];
-    [_output1 processPixelBuffer:buffer1 withSampleTime:time];
-    [_output0 processPixelBuffer:buffer0 withSampleTime:time];
-    
-}
-
-- (void)renderPixelBuffer:(CVPixelBufferRef)destBuffer
-       usingSourceBuffer:(CVPixelBufferRef)buffer
-                     time:(CMTime)time
-{
-    [_result setPixelBuffer:destBuffer];
-    [_output0 processPixelBuffer:buffer withSampleTime:time];
 }
 
 @end
