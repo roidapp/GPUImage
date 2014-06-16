@@ -9,7 +9,7 @@
 #import "GPUImageMovieInstruction.h"
 
 @interface GPUImageMovieInstruction()
-@property(nonatomic, strong)NSArray *indexes;
+@property(nonatomic, strong)NSDictionary *outputMap;
 @end
 
 @implementation GPUImageMovieInstruction
@@ -20,7 +20,7 @@
 @synthesize requiredSourceTrackIDs  = _requiredSourceTrackIDs;
 @synthesize passthroughTrackID      = _passthroughTrackID;
 
-- (id)initTransitionWithSourceTrackIDs:(NSArray *)sourceTrackIDs indexes:(NSArray *)indexes forTimeRange:(CMTimeRange)timeRange
+- (id)initTransitionWithSourceTrackIDs:(NSArray *)sourceTrackIDs indexes:(NSDictionary *)outputMap forTimeRange:(CMTimeRange)timeRange
 {
 	self = [super init];
 	if (self) {
@@ -29,7 +29,7 @@
 		_timeRange = timeRange;
 		_containsTweening = TRUE;
 		_enablePostProcessing = FALSE;
-        _indexes = indexes;
+        _outputMap = outputMap;
 	}
 	
 	return self;
@@ -37,6 +37,6 @@
 
 - (NSInteger)indexOfTrackID:(NSNumber *)trackID
 {
-    return [_indexes indexOfObject:trackID];
+    return [_outputMap[trackID] intValue];
 }
 @end
