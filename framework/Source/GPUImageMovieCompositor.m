@@ -52,15 +52,14 @@ static id videoStyle = nil;
 
 - (NSDictionary*)sourcePixelBufferAttributes
 {
-    return @{ (NSString *)kCVPixelBufferPixelFormatTypeKey : [NSNumber numberWithUnsignedInt:kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange],
-			  (NSString*)kCVPixelBufferOpenGLESCompatibilityKey : [NSNumber numberWithBool:YES]};
+    return @{(NSString *)kCVPixelBufferPixelFormatTypeKey : [NSNumber numberWithUnsignedInt:kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange],
+             (NSString*)kCVPixelBufferOpenGLESCompatibilityKey : [NSNumber numberWithBool:YES]};
 }
 
 - (NSDictionary*)requiredPixelBufferAttributesForRenderContext
 {
-    return @{ //(NSString *)kCVPixelBufferPixelFormatTypeKey : [NSNumber numberWithUnsignedInt:kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange],
-              (NSString *)kCVPixelBufferPixelFormatTypeKey : [NSNumber numberWithUnsignedInt:kCVPixelFormatType_32BGRA],
-			  (NSString*)kCVPixelBufferOpenGLESCompatibilityKey : [NSNumber numberWithBool:YES]};
+    return @{(NSString *)kCVPixelBufferPixelFormatTypeKey : [NSNumber numberWithUnsignedInt:kCVPixelFormatType_32BGRA],
+             (NSString*)kCVPixelBufferOpenGLESCompatibilityKey : [NSNumber numberWithBool:YES]};
 }
 
 
@@ -142,9 +141,10 @@ static id videoStyle = nil;
     CMTime currTime = request.compositionTime;
     [_result setPixelBuffer:dstPixels];
     
-    for (int i = 0; i < trackIDs.count; i++) {
+    NSArray *outputArray = _outputs;
+    for (int i = 0; i < trackIDs.count && i < [outputArray count]; i++) {
         NSInteger idx = [currentInstruction indexOfTrackID:trackIDs[i]];
-        GPUImageMovieFrameOutput *output = _outputs[idx];
+        GPUImageMovieFrameOutput *output = outputArray[idx];
         [output processPixelBuffer:buffer[i] withSampleTime:currTime];
     }
     
