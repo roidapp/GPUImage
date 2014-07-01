@@ -24,8 +24,8 @@ static id videoStyle = nil;
     BOOL								_shouldCancelAllRequests;
     BOOL								_renderContextDidChange;
     dispatch_queue_t					_renderContextQueue;
+    dispatch_queue_t                    _renderQueue;
     AVVideoCompositionRenderContext*	_renderContext;
-    CVPixelBufferRef					_previousBuffer;
     CGAffineTransform                   _renderTransform;
 }
 
@@ -41,6 +41,7 @@ static id videoStyle = nil;
     self = [super init];
     if (self){
 		_renderContextQueue = dispatch_queue_create("com.apple.aplcustomvideocompositor.rendercontextqueue", DISPATCH_QUEUE_SERIAL);
+        _renderQueue = dispatch_queue_create("com.roidapp.renderqueue", DISPATCH_QUEUE_SERIAL);
         SuppressPerformSelectorLeakWarning([videoStyle performSelector:NSSelectorFromString(@"setCompositor:") withObject:self];);
     }
     return self;
@@ -75,22 +76,20 @@ static id videoStyle = nil;
 {
 	@autoreleasepool {
         runAsynchronouslyOnVideoProcessingQueue(^{
-            // Check if all pending requests have been cancelled
-			if (_shouldCancelAllRequests) {
-				[request finishCancelledRequest];
-			} else {
-				NSError *err = nil;
+            if (_shouldCancelAllRequests || !_valid) {
+                [request finishCancelledRequest];
+            } else {
+                NSError *err = nil;
                 [_delegate compositorWillProcessFrameAtTime:request.compositionTime];
-				// Get the next rendererd pixel buffer
-				CVPixelBufferRef resultPixels = [self newRenderedPixelBufferForRequest:request error:&err];
-				if (resultPixels) {
-					// The resulting pixelbuffer from OpenGL renderer is passed along to the request
-					[request finishWithComposedVideoFrame:resultPixels];
-					CFRelease(resultPixels);
-				} else {
-					[request finishWithError:err];
-				}
-			}
+                // Get the next rendererd pixel buffer
+                CVPixelBufferRef resultPixels = [self newRenderedPixelBufferForRequest:request error:&err];
+                if (resultPixels) {
+                    // The resulting pixelbuffer from OpenGL renderer is passed along to the request
+                    [request finishWithComposedVideoFrame:resultPixels];
+                } else {
+                    [request finishWithError:err];
+                }
+            }
         });
 	}
 }
@@ -99,15 +98,23 @@ static id videoStyle = nil;
 {
 	// pending requests will call finishCancelledRequest, those already rendering will call finishWithComposedVideoFrame
 	_shouldCancelAllRequests = YES;
-	
-	dispatch_barrier_async([GPUImageContext sharedContextQueue], ^() {
-		// start accepting requests again
-		_shouldCancelAllRequests = NO;
-	});
+    runAsynchronouslyOnVideoProcessingQueue(^{
+        _shouldCancelAllRequests = NO;
+    });
+}
+
+- (void)setValid:(BOOL)valid
+{
+    _valid = valid;
+    [GPUImageContext sharedImageProcessingContext].valid = valid;
 }
 
 - (CVPixelBufferRef)newRenderedPixelBufferForRequest:(AVAsynchronousVideoCompositionRequest *)request error:(NSError **)errOut
 {
+    if (!_valid) {
+        return nil;
+    }
+    
 	CVPixelBufferRef dstPixels = nil;
 	
 	GPUImageMovieInstruction *currentInstruction = request.videoCompositionInstruction;
@@ -148,6 +155,7 @@ static id videoStyle = nil;
         [output processPixelBuffer:buffer[i] withSampleTime:currTime];
     }
     
+    NSLog(@"return dstPixels");
 	return dstPixels;
 }
 

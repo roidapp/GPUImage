@@ -311,4 +311,27 @@ static void *openGLESContextQueueKey;
     return _framebufferCache;
 }
 
+- (void)flush
+{
+    if (_valid) {
+        glFlush();
+    }
+}
+
+- (void)finish
+{
+    if (_valid) {
+        glFinish();
+    }
+}
+
+- (void)CVOpenGLESTextureRelease:(CVOpenGLESTextureRef)texture
+{
+    if (_valid) {
+        CVBufferRelease(texture);
+    } else {
+    
+    }
+}
+
 @end
