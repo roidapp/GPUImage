@@ -40,6 +40,8 @@
 
 - (void)processPixelBuffer:(CVPixelBufferRef)movieFrame withSampleTime:(CMTime)currentSampleTime
 {
+    [GPUImageContext useImageProcessingContext];
+    
     int bufferHeight = (int) CVPixelBufferGetHeight(movieFrame);
     int bufferWidth = (int) CVPixelBufferGetWidth(movieFrame);
 
