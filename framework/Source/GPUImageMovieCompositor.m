@@ -86,6 +86,7 @@ static id videoStyle = nil;
                 if (resultPixels) {
                     // The resulting pixelbuffer from OpenGL renderer is passed along to the request
                     [request finishWithComposedVideoFrame:resultPixels];
+                    CVPixelBufferRelease(resultPixels);
                 } else {
                     [request finishWithError:err];
                 }
