@@ -156,7 +156,6 @@ static id videoStyle = nil;
         [output processPixelBuffer:buffer[i] withSampleTime:currTime];
     }
     
-    NSLog(@"return dstPixels");
 	return dstPixels;
 }
 
