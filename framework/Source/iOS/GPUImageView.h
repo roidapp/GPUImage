@@ -23,7 +23,8 @@ typedef enum {
  */
 @property(readonly, nonatomic) CGSize sizeInPixels;
 
-@property(nonatomic) BOOL enabled;
+@property(nonatomic, assign) BOOL   enabled;
+@property(nonatomic, assign) BOOL   valid;
 
 /** Handling fill mode
  

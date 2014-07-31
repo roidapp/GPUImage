@@ -22,9 +22,12 @@
 @end
 
 @interface GPUImageMovieCompositor : NSObject<AVVideoCompositing>
-@property(nonatomic, strong)NSArray                    *outputs;
-@property(nonatomic, strong)GPUImageMovieFrameInput    *result;
-@property(nonatomic, assign)id<GPUImageMovieCompositorDelegate> delegate;
+
+@property (nonatomic, assign) BOOL          valid;
+@property (nonatomic, strong) NSArray       *outputs;
+@property (nonatomic, strong) GPUImageMovieFrameInput    *result;
+@property (nonatomic, assign) id<GPUImageMovieCompositorDelegate> delegate;
 
 + (void)setCurrStyle:(VideoStyle*)style;
+
 @end

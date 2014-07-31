@@ -202,8 +202,8 @@ NSString *const kGPUImageColorSwizzlingFragmentShaderString1 = SHADER_STRING
     
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     
-    glFinish();
-    CFRelease(renderTexture);
+    [[GPUImageContext sharedImageProcessingContext] finish];
+    [[GPUImageContext sharedImageProcessingContext] CVOpenGLESTextureRelease:renderTexture];
 }
 
 - (NSInteger)nextAvailableTextureIndex{
