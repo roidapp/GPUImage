@@ -370,6 +370,68 @@ void dataProviderUnlockCallback (void *info, const void *data, size_t size)
     return cgImageFromBytes;
 }
 
+- (BOOL)lastRowPixelsEqual:(uint32_t)color;
+{
+    __block BOOL result = YES;
+    // a CGImage can only be created from a 'normal' color texture
+    NSAssert(self.textureOptions.internalFormat == GL_RGBA, @"For conversion to a CGImage the output texture format for this filter must be GL_RGBA.");
+    NSAssert(self.textureOptions.type == GL_UNSIGNED_BYTE, @"For conversion to a CGImage the type of the output texture of this filter must be GL_UNSIGNED_BYTE.");
+    
+    runSynchronouslyOnVideoProcessingQueue(^{
+        [GPUImageContext useImageProcessingContext];
+        
+        NSUInteger totalBytesForLastRowInImage = (int)_size.width * 4;
+        // It appears that the width of a texture must be padded out to be a multiple of 8 (32 bytes) if reading from it using a texture cache
+        
+        GLubyte *rawImagePixels;
+        
+        if ([GPUImageContext supportsFastTextureUpload])
+        {
+#if TARGET_IPHONE_SIMULATOR || TARGET_OS_IPHONE
+            NSUInteger paddedWidthOfImage = CVPixelBufferGetBytesPerRow(renderTarget) / 4.0;
+            NSUInteger paddedBytesForImage = paddedWidthOfImage * (int)(_size.height - 1) * 4;
+            
+            glFinish();
+            CFRetain(renderTarget); // I need to retain the pixel buffer here and release in the data source callback to prevent its bytes from being prematurely deallocated during a photo write operation
+            [self lockForReading];
+            rawImagePixels = (GLubyte *)CVPixelBufferGetBaseAddress(renderTarget);
+            
+            uint32_t *pixelPtr = (uint32_t*)(rawImagePixels + paddedBytesForImage);
+            for (int i = 0; i < (int)_size.width; i++) {
+                if (*pixelPtr++ != color) {
+                    result = NO;
+                    break;
+                }
+            }
+            [[GPUImageContext sharedFramebufferCache] addFramebufferToActiveImageCaptureList:self]; // In case the framebuffer is swapped out on the filter, need to have a strong reference to it somewhere for it to hang on while the image is in existence
+#else
+#endif
+        }
+        else
+        {
+            [self activateFramebuffer];
+            rawImagePixels = (GLubyte *)malloc(totalBytesForLastRowInImage);
+            glReadPixels(0, (int)_size.height - 1, (int)_size.width, (int)_size.height, GL_RGBA, GL_UNSIGNED_BYTE, rawImagePixels);
+            
+            uint32_t *pixelPtr = (uint32_t*)(rawImagePixels);
+            for (int i = 0; i < (int)_size.width; i++) {
+                if (*pixelPtr++ != color) {
+                    result = NO;
+                    break;
+                }
+            }
+            
+            free(rawImagePixels);
+            
+            [self unlock]; // Don't need to keep this around anymore
+        }
+    });
+    
+    return result;
+
+}
+
+
 - (void)restoreRenderTarget;
 {
 #if TARGET_IPHONE_SIMULATOR || TARGET_OS_IPHONE
