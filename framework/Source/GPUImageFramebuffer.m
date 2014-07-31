@@ -403,7 +403,8 @@ void dataProviderUnlockCallback (void *info, const void *data, size_t size)
                     break;
                 }
             }
-            [[GPUImageContext sharedFramebufferCache] addFramebufferToActiveImageCaptureList:self]; // In case the framebuffer is swapped out on the filter, need to have a strong reference to it somewhere for it to hang on while the image is in existence
+            
+            [self restoreRenderTarget];
 #else
 #endif
         }
@@ -422,9 +423,9 @@ void dataProviderUnlockCallback (void *info, const void *data, size_t size)
             }
             
             free(rawImagePixels);
-            
-            [self unlock]; // Don't need to keep this around anymore
         }
+        
+        [self unlock]; // Don't need to keep this around anymore
     });
     
     return result;
