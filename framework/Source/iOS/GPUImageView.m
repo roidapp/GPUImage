@@ -79,7 +79,7 @@
 
 - (void)commonInit;
 {
-    // Set scaling to account for Retina display	
+    // Set scaling to account for Retina display
     if ([self respondsToSelector:@selector(setContentScaleFactor:)])
     {
         self.contentScaleFactor = [[UIScreen mainScreen] scale];
@@ -93,6 +93,7 @@
     eaglLayer.drawableProperties = [NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithBool:NO], kEAGLDrawablePropertyRetainedBacking, kEAGLColorFormatRGBA8, kEAGLDrawablePropertyColorFormat, nil];
 
     self.enabled = YES;
+    self.valid = YES;
     
     runSynchronouslyOnVideoProcessingQueue(^{
         [GPUImageContext useImageProcessingContext];
@@ -221,7 +222,10 @@
 - (void)presentFramebuffer;
 {
     glBindRenderbuffer(GL_RENDERBUFFER, displayRenderbuffer);
-    [[GPUImageContext sharedImageProcessingContext] presentBufferForDisplay];
+    
+    if (self.valid) {
+        [[GPUImageContext sharedImageProcessingContext] presentBufferForDisplay];
+    }
 }
 
 #pragma mark -

@@ -8,6 +8,7 @@ typedef enum { kGPUImageNoRotation, kGPUImageRotateLeft, kGPUImageRotateRight, k
 
 @interface GPUImageContext : NSObject
 
+@property(nonatomic, assign, getter = isValid) BOOL   valid;
 @property(readonly, nonatomic) dispatch_queue_t contextQueue;
 @property(readwrite, retain, nonatomic) GLProgram *currentShaderProgram;
 @property(readonly, retain, nonatomic) EAGLContext *context;
@@ -37,6 +38,10 @@ typedef enum { kGPUImageNoRotation, kGPUImageRotateLeft, kGPUImageRotateRight, k
 
 // Manage fast texture upload
 + (BOOL)supportsFastTextureUpload;
+
+- (void)flush;
+- (void)finish;
+- (void)CVOpenGLESTextureRelease:(CVOpenGLESTextureRef)texture;
 
 @end
 
